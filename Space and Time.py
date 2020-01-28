@@ -237,7 +237,7 @@ plt.yticks(np.arange(0, len(heatmap_score_buffer.index), 1), heatmap_score.index
 plt.xlabel('Day of Week')
 plt.show()
 
-
+ 
 print(WDD.describe(), WDN.describe(), WED.describe(), WEN.describe())
 print(WDD.median(), WDN.median(), WED.median(), WEN.median())
 
