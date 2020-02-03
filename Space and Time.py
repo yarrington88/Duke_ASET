@@ -8,14 +8,11 @@ from scipy import stats
 import seaborn as sns
 from scipy.ndimage.filters import gaussian_filter
 
-
 # initialization parameters
 # dates
-start_date = date(year=2013, month=7, day=1)
+start_date = date(year=2018, month=7, day=1)
 end_date = date(year=2019, month=7, day=1)
 unit = 'Surgical Ward'
-
-
 
 # create the engine for accessing sql database
 engine = create_engine('mssql+pyodbc://@vwp-dason-db/dason?driver=ODBC Driver 13 for SQL Server?trusted_connection=yes')
@@ -25,10 +22,11 @@ sql1 = 'SELECT * ' \
        'WHERE AdministrationDateTime >= ? ' \
        'and AdministrationDateTime < ? ' \
        'and NHSNUnitName = ? ' \
-       'and HospitalId = 2000 '
+       'and HospitalId != 2000 '
 
 # get our data!!
-allabx_inperiod = pd.read_sql(sql1, engine, params=[(start_date - timedelta(days=0)), (end_date + timedelta(days=0)), unit])
+allabx_inperiod = pd.read_sql(sql1, engine,
+                              params=[(start_date - timedelta(days=0)), (end_date + timedelta(days=0)), unit])
 
 # create a spectrum score dictionary to each antimicrobial
 abx_dict = {'Ciprofloxacin': '8', 'Vancomycin': '5', 'Piperacillin with Tazobactam': '8',
@@ -101,6 +99,11 @@ admissions = allabx_inperiod.groupby(['AdmissionId', 'PatientId'])
 idx = admissions.AdministrationDateTime.transform(min) + timedelta(hours=24) > allabx_inperiod.AdministrationDateTime
 firsts = allabx_inperiod[idx]
 deduped = firsts.copy().drop_duplicates(['AgentName', 'PatientId', 'AdmissionId'], keep='first')
+
+
+#remove cefazolin?
+# deduped = deduped[deduped.AgentName != 'Cefazolin']
+
 count = deduped.Dose.count()
 
 # make a column in deduped with the first admin time of all abx
@@ -108,8 +111,10 @@ deduped['first admin'] = deduped.groupby(['Date', 'PatientId', 'Weekday']).Time.
 
 # now we can group and have the first administration time (in hour of day) as part of the group index
 # This group consists of all antibiotics given to a patient on a specific date (Weekday and first admin times are
-# redundant, but helpful to have in the group indeces)
+# redundant, but helpful to have in the group indices)
 groupbypatient = deduped.groupby(['Date', 'PatientId', 'Weekday', 'first admin'])
+
+
 
 # find the sum of the ASI per each group above
 summedASIperday = groupbypatient.Spectrum.sum()
@@ -118,7 +123,7 @@ mean_per_day = summedASIperday.groupby('Weekday').Spectrum.mean()
 ste_per_day = summedASIperday.groupby('Weekday').Spectrum.sem()
 
 # ok but we also need to get the total mean for weekday/day, weekday/night, weekend/day and weekend/night
-# so let's split it up, Mon 8AM to Friday at 5pm is 'weekday', Friday 5pm to Monday 8a is weekend.
+# so let's split it up, Mon 8AM to Friday at 7pm is 'weekday', Friday 7pm to Monday 8a is weekend.
 
 
 summedASIperday['Weekend/Day'] = (summedASIperday['Weekday'] >= 5) & \
@@ -137,7 +142,7 @@ summedASIperday['Weekday/Day'] = (summedASIperday['Weekday'] < 5) & \
                                   (summedASIperday['first admin'] >= 8))
 
 summedASIperday['Weekday/Night'] = (summedASIperday['Weekend/Day'] != True) & (
-            summedASIperday['Weekend/Night'] != True) & \
+        summedASIperday['Weekend/Night'] != True) & \
                                    (summedASIperday['Weekday/Day'] != True)
 
 # visualize the data!!!!!
@@ -151,18 +156,25 @@ WEN = summedASIperday[summedASIperday['Weekend/Night'] == True].Spectrum.reset_i
 
 # Plot a histogram distribution of the spectrum scores for each group
 
-fig = plt.figure()
+fig = plt.figure(figsize = (5,10))
+# ax = fig.add_subplot(1, 1, 1)
+# ax.set_ylabel(
+# ax.set_xlabel('Spectrum Score')
 ax1 = fig.add_subplot(4, 1, 1)
 ax2 = fig.add_subplot(4, 1, 2)
 ax3 = fig.add_subplot(4, 1, 3)
 ax4 = fig.add_subplot(4, 1, 4)
-ax1.hist(WDD, list(range(0, 41, 1)))
-ax2.hist(WDN, list(range(0, 41, 1)))
-ax3.hist(WED, list(range(0, 41, 1)))
-ax4.hist(WEN, list(range(0, 41, 1)))
+ax1.hist(WDD, list(range(0, 25, 1)))
+ax1.set_title(f'Weekday Day ({WDD.count()})')
+ax2.hist(WDN, list(range(0, 25, 1)))
+ax2.set_title(f'Weekday Night ({WDN.count()})')
+ax3.hist(WED, list(range(0, 25, 1)))
+ax3.set_title(f'Weekend Day ({WED.count()})')
+ax4.hist(WEN, list(range(0, 25, 1)))
+ax4.set_title(f'Weekend Night ({WEN.count()})')
+plt.xlabel('Spectrum Score')
+fig.text(0.015, .5, 'Number of administrations', ha='center', va='center', rotation='vertical')
 plt.show()
-
-
 
 # Boxplots for each of the 4 groups
 fig, axs = plt.subplots(figsize=(6, 6))
@@ -213,7 +225,7 @@ heatmap_score_buffer.loc[24] = heatmap_score_buffer.iloc[23]
 
 # PLOT HEAT MAP
 
-fig, ax = plt.subplots(figsize = (6,6))
+fig, ax = plt.subplots(figsize=(6, 6))
 figure = ax.pcolormesh(heatmap_score_buffer, cmap='viridis', shading='gouraud')
 plt.yticks(np.arange(0, len(heatmap_score_buffer.index), 1), heatmap_score.index)
 plt.xticks(np.arange(0, len(heatmap_score_buffer.columns), 1), ['', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'])
@@ -225,19 +237,16 @@ plt.xlabel('Day of Week')
 plt.axis([0.5, 7.5, 0, 24])
 plt.show()
 
-
-#PLOT USING SEABORN
-plt.figure(figsize=(6,6))
-ax = sns.heatmap(heatmap_score, annot= True, cmap='viridis')
+# PLOT USING SEABORN
+plt.figure(figsize=(6, 6))
+ax = sns.heatmap(heatmap_score, annot=True, cmap='viridis')
 ax.invert_yaxis()
 bar = fig.colorbar(figure)
 bar.set_label('Mean ASI')
 plt.title(f'{unit}, {count} Admissions')
-plt.yticks(np.arange(0, len(heatmap_score_buffer.index), 1), heatmap_score.index, rotation = 'horizontal')
+plt.yticks(np.arange(0, len(heatmap_score_buffer.index), 1), heatmap_score.index, rotation='horizontal')
 plt.xlabel('Day of Week')
 plt.show()
 
- 
 print(WDD.describe(), WDN.describe(), WED.describe(), WEN.describe())
 print(WDD.median(), WDN.median(), WED.median(), WEN.median())
-
