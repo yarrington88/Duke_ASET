@@ -105,7 +105,7 @@ deduped = firsts.copy().drop_duplicates(['AgentName', 'PatientId', 'AdmissionId'
 
 
 #remove cefazolin?
-deduped = deduped[deduped.AgentName != 'Cefazolin']
+# deduped = deduped[deduped.AgentName != 'Cefazolin']
 
 count = deduped.HospitalId.count()
 
@@ -129,127 +129,140 @@ ste_per_day = summedASIperday.groupby('Weekday').Spectrum.sem()
 # so let's split it up, Mon 8AM to Friday at 7pm is 'weekday', Friday 7pm to Monday 8a is weekend.
 
 
-summedASIperday['Weekend/Day'] = (summedASIperday['Weekday'] >= 5) & \
-                                 ((summedASIperday['first admin'] < 19) &
-                                  (summedASIperday['first admin'] >= 8))
 
-summedASIperday['Weekend/Night'] = ((summedASIperday['Weekday'] >= 5) &
-                                    (summedASIperday['Weekend/Day'] != True)) | \
-                                   ((summedASIperday['Weekday'] == 0) &
-                                    (summedASIperday['first admin'] < 8)) | \
-                                   ((summedASIperday['Weekday'] == 4) &
-                                    (summedASIperday['first admin'] >= 19))
-
-summedASIperday['Weekday/Day'] = (summedASIperday['Weekday'] < 5) & \
-                                 ((summedASIperday['first admin'] < 19) &
-                                  (summedASIperday['first admin'] >= 8))
-
-summedASIperday['Weekday/Night'] = (summedASIperday['Weekend/Day'] != True) & (
-        summedASIperday['Weekend/Night'] != True) & \
-                                   (summedASIperday['Weekday/Day'] != True)
-
-# visualize the data!!!!!
-
-
-# Make easy variables to compare
-WDD = summedASIperday[summedASIperday['Weekday/Day'] == True].Spectrum.reset_index(drop=True)
-WDN = summedASIperday[summedASIperday['Weekday/Night'] == True].Spectrum.reset_index(drop=True)
-WED = summedASIperday[summedASIperday['Weekend/Day'] == True].Spectrum.reset_index(drop=True)
-WEN = summedASIperday[summedASIperday['Weekend/Night'] == True].Spectrum.reset_index(drop=True)
-
-# Plot a histogram distribution of the spectrum scores for each group
-
-fig = plt.figure(figsize = (5,10))
-# ax = fig.add_subplot(1, 1, 1)
-# ax.set_ylabel(
-# ax.set_xlabel('Spectrum Score')
-ax1 = fig.add_subplot(4, 1, 1)
-ax2 = fig.add_subplot(4, 1, 2)
-ax3 = fig.add_subplot(4, 1, 3)
-ax4 = fig.add_subplot(4, 1, 4)
-ax1.hist(WDD, list(range(0, 25, 1)))
-ax1.set_title(f'Weekday Day ({WDD.count()})')
-ax2.hist(WDN, list(range(0, 25, 1)))
-ax2.set_title(f'Weekday Night ({WDN.count()})')
-ax3.hist(WED, list(range(0, 25, 1)))
-ax3.set_title(f'Weekend Day ({WED.count()})')
-ax4.hist(WEN, list(range(0, 25, 1)))
-ax4.set_title(f'Weekend Night ({WEN.count()})')
-plt.xlabel('Spectrum Score')
-fig.text(0.015, .5, 'Number of administrations', ha='center', va='center', rotation='vertical')
-plt.show()
-
-# Boxplots for each of the 4 groups
-fig, axs = plt.subplots(figsize=(6, 6))
-plt.title(f'({unit}, {count} Antibiotic Starts)')
-plt.ylabel('ASI per Antibiotic Start')
-axs.boxplot([WDD, WDN, WED, WEN], showmeans=True, showfliers=False)
-axs.set_ylim(0, 25.15)
-plt.xticks([1, 2, 3, 4], ['Weekday Day', 'Weekday Night', 'Weekend Day', 'Weekend Night'])
-plt.show()
-
-# Means per grouped time of the weekday/end/day/night
-weekday_day_mean = summedASIperday.groupby('Weekday/Day').Spectrum.mean()[True]
-weekday_night_mean = summedASIperday.groupby('Weekday/Night').Spectrum.mean()[True]
-weekend_day_mean = summedASIperday.groupby('Weekend/Day').Spectrum.mean()[True]
-weekend_night_mean = summedASIperday.groupby('Weekend/Night').Spectrum.mean()[True]
-
-WDN_compare = sp.stats.mannwhitneyu(WDD, WDN, alternative='two-sided')
-WED_compare = sp.stats.mannwhitneyu(WDD, WED, alternative='two-sided')
-WEN_compare = sp.stats.mannwhitneyu(WDD, WEN, alternative='two-sided')
-
-# PLOT THE BAR AND BOXPLOTS per day of the week
-
-plt.bar(['Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'], mean_per_day, yerr=ste_per_day * 1.96)
-plt.axis([-0.5, 6.5, 0, 12])
-plt.title(f'({unit}, {count} Admissions, {start_date} to {end_date})')
-plt.ylabel('Mean of Cumulative ASI')
-plt.show()
-
-summedASIperday.boxplot(column='Spectrum', by='Weekday')
-plt.suptitle('')
-plt.title(f'({unit}, {count} Admissions, {start_date} to {end_date})')
-plt.ylabel('Mean of Cumulative ASI')
-plt.xlabel('Day of Week')
-plt.xticks([1, 2, 3, 4, 5, 6, 7], ['Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'])
-plt.show()
-
+# MAKE HEATMAP OF COUNTS OF NEW INDICATION
 # get the heatmap and add buffers to the sides and top to make it more presentable on the graph
 heatmapgroup = summedASIperday.groupby(['Weekday', 'first admin'])
-heatmap_score = heatmapgroup.Spectrum.mean().unstack(
+heatmap_count = heatmapgroup.Spectrum.count().unstack(
     level=1).transpose()  # this finds mean of the spectrum sum per day/hour combo and then puts it into dataframe, and transposes DF
-heatmap_score.columns = ['Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun']
-heatmap_score_buffer = heatmap_score.copy()
-heatmap_score_buffer['Sun 2'] = heatmap_score['Mon']
-heatmap_score_buffer['Mon 2'] = heatmap_score['Mon']
+heatmap_count.columns = ['Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun']
+heatmap_count_buffer = heatmap_count.copy()
+heatmap_count_buffer['Sun 2'] = heatmap_count['Mon']
+heatmap_count_buffer['Mon 2'] = heatmap_count['Mon']
 order = ['Sun 2', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun', 'Mon 2']
-heatmap_score_buffer = heatmap_score_buffer[order]
-heatmap_score_buffer.loc[24] = heatmap_score_buffer.iloc[23]
+heatmap_count_buffer = heatmap_count_buffer[order]
+heatmap_count_buffer.loc[24] = heatmap_count_buffer.iloc[23]
 
-# PLOT HEAT MAP
 
+
+
+
+sql2 = 'SELECT * ' \
+       'FROM DasonView.ClinicalIndication ' \
+       'WHERE AdministrationDateTime >= ? ' \
+       'and AdministrationDateTime < ? ' \
+       'and HospitalId = 2000 ' \
+#'and NHSNUnitName = ? ' \
+
+
+    # get our data!!
+allabx_inperiod = pd.read_sql(sql2, engine,
+                              params=[(start_date - timedelta(days=0)), (end_date + timedelta(days=0))])
+
+
+# Assign the spectrum score to antibiotic data
+allabx_inperiod['Spectrum'] = allabx_inperiod['AgentName'].map(abx_dict)
+allabx_inperiod['Spectrum'] = allabx_inperiod['Spectrum'].astype('int')
+
+# Assign a new variable that indicates the date, the day of week, the time of day, etc.
+allabx_inperiod['Date'] = allabx_inperiod['AdministrationDateTime'].dt.date
+allabx_inperiod['Weekday'] = allabx_inperiod['AdministrationDateTime'].dt.weekday
+allabx_inperiod['Time'] = allabx_inperiod['AdministrationDateTime'].dt.hour
+
+# Remove all antibimicrobials that have spectrum score of 0
+allabx_inperiod = allabx_inperiod[allabx_inperiod.Spectrum > 0]
+
+# Find the mean per day summed spectrum score per day of week
+# first have to dedupe the agent given for any specific day so you don't sum multiple doses.  Then on each DATE
+# a PATIENT will have a specific sum.  We will then reset_index so that we can sort it by weekday and get the mean
+# spectrum for each weekday.
+
+
+admissions = allabx_inperiod.groupby(['AdmissionId', 'PatientId'])
+# should prob grab the first 24 hours of antibiotics rather than the first calendar day
+
+idx = admissions.AdministrationDateTime.transform(min) + timedelta(hours=24) > allabx_inperiod.AdministrationDateTime
+firsts = allabx_inperiod[idx]
+deduped = firsts.copy().drop_duplicates(['AgentName', 'PatientId', 'AdmissionId'], keep='first')
+
+
+#remove cefazolin?
+# deduped = deduped[deduped.AgentName != 'Cefazolin']
+
+count = deduped.HospitalId.count()
+
+# make a column in deduped with the first admin time of all abx
+deduped['first admin'] = deduped.groupby(['Date', 'PatientId', 'Weekday']).Time.transform('min')
+
+# now we can group and have the first administration time (in hour of day) as part of the group index
+# This group consists of all antibiotics given to a patient on a specific date (Weekday and first admin times are
+# redundant, but helpful to have in the group indices)
+groupbypatient = deduped.groupby(['Date', 'PatientId', 'Weekday', 'first admin'])
+
+
+
+# find the sum of the ASI per each group above
+summedASIperday = groupbypatient.Spectrum.sum()
+summedASIperday = summedASIperday.reset_index()
+mean_per_day = summedASIperday.groupby('Weekday').Spectrum.mean()
+ste_per_day = summedASIperday.groupby('Weekday').Spectrum.sem()
+
+# ok but we also need to get the total mean for weekday/day, weekday/night, weekend/day and weekend/night
+# so let's split it up, Mon 8AM to Friday at 7pm is 'weekday', Friday 7pm to Monday 8a is weekend.
+
+
+
+# MAKE HEATMAP OF COUNTS OF NEW INDICATION
+# get the heatmap and add buffers to the sides and top to make it more presentable on the graph
+heatmapgroup2 = summedASIperday.groupby(['Weekday', 'first admin'])
+all_heatmap_count = heatmapgroup2.Spectrum.count().unstack(
+    level=1).transpose()  # this finds mean of the spectrum sum per day/hour combo and then puts it into dataframe, and transposes DF
+all_heatmap_count.columns = ['Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun']
+all_heatmap_count_buffer = all_heatmap_count.copy()
+all_heatmap_count_buffer['Sun 2'] = all_heatmap_count['Mon']
+all_heatmap_count_buffer['Mon 2'] = all_heatmap_count['Mon']
+order = ['Sun 2', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun', 'Mon 2']
+all_heatmap_count_buffer = all_heatmap_count_buffer[order]
+all_heatmap_count_buffer.loc[24] = all_heatmap_count_buffer.iloc[23]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# PLOT the COUNT PERCENT of each indication
+plt.figure(figsize=(6, 6))
+ax = sns.heatmap(heatmap_count/all_heatmap_count*100, annot=True, cmap='viridis')
+ax.invert_yaxis()
+plt.title(f'{unit} antibiotic starts as a % of total')
+plt.yticks(np.arange(0, len(heatmap_count_buffer.index), 1), heatmap_count.index, rotation='horizontal')
+plt.xlabel('Day of Week')
+plt.ylabel('Hour')
+plt.show()
+
+
+# PLOT THE COUNT PERCENT OF EACH INDICATION
 fig, ax = plt.subplots(figsize=(6, 6))
-figure = ax.pcolormesh(heatmap_score_buffer, cmap='viridis', shading='gouraud')
-plt.yticks(np.arange(0, len(heatmap_score_buffer.index), 1), heatmap_score.index)
-plt.xticks(np.arange(0, len(heatmap_score_buffer.columns), 1), ['', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'])
-bar = fig.colorbar(figure)
+figure = ax.pcolormesh(heatmap_count_buffer, cmap='viridis', shading='gouraud')
+plt.yticks(np.arange(0, len(heatmap_count_buffer.index), 1), heatmap_count.index)
+plt.xticks(np.arange(0, len(heatmap_count_buffer.columns), 1), ['', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'])
 plt.title(f'{unit}, {count} Admissions')
 plt.ylabel('Hour')
 plt.xlabel('Day of Week')
 plt.axis([0.5, 7.5, 0, 24])
 plt.show()
-
-# PLOT USING SEABORN
-plt.figure(figsize=(6, 6))
-ax = sns.heatmap(heatmap_score, annot=True, cmap='viridis')
-ax.invert_yaxis()
-plt.title(f'{unit}, {count} Admissions')
-plt.yticks(np.arange(0, len(heatmap_score_buffer.index), 1), heatmap_score.index, rotation='horizontal')
-plt.xlabel('Day of Week')
-plt.ylabel('Hour')
-plt.show()
-
-print(WDD.describe(), WDN.describe(), WED.describe(), WEN.describe())
-print(WDD.median(), WDN.median(), WED.median(), WEN.median())
 
 
