@@ -76,15 +76,8 @@ second_medians = pd.DataFrame({col:vals['hours'] for col,vals in second_grouped}
 
 
 
+
 plt.figure(figsize=(8,4))
-sns.boxplot(data = first_cohort, x='Category', y = 'hours', order = first_medians.index, showfliers = False)
-plt.ylabel('Post-Procedure Duration (hours)')
-plt.xlabel('Category Based on NHSN Code')
-plt.ylim(0,40)
-plt.show()
-
-
-plt.figure(figsize=(12,4))
 sns.boxplot(data = second_cohort, x='Category', y = 'hours', order = second_medians.index, whis = [25,75], showfliers = False)
 plt.ylabel('Post-Procedure Duration (hours)')
 plt.xlabel('Category Based on NHSN Code')
@@ -92,11 +85,23 @@ plt.ylim(0,10)
 plt.show()
 
 
+
+plt.figure(figsize=(6,4))
+sns.boxplot(data = first_cohort, x='Category', y = 'hours', order = first_medians.index, showfliers = False, palette = 'Set3')
+plt.ylabel('Post-Procedure Duration (hours)')
+plt.xlabel('')
+plt.yticks([0,12,24,36,48,60,72])
+plt.ylim(0,72)
+plt.show()
+
+
 #ADULT and PEDS
 
-plt.figure(figsize=(6,6))
-sns.boxplot(data = nhsn_code_duration, x='age', y = 'hours')
+plt.figure(figsize=(4,4))
+sns.boxplot(data = nhsn_code_duration, x='age', y = 'hours', showfliers = False, palette = 'Set3')
 plt.ylabel('Post-Procedure Duration (hours)')
-plt.xlabel('Age')
-plt.ylim(0,70)
+plt.xlabel('')
+plt.yticks([0,12,24,36,48,60,72])
+plt.xticks([0,1],['Adult','Pediatric'])
+plt.ylim(0,72)
 plt.show()
