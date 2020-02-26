@@ -39,6 +39,15 @@ category_dict = {'COLO': 'Colo/Gen.Surg', 'REC':'Colo/Gen.Surg', 'PVBY':'Vascula
                  'CRAN':'Neurosurgery','VHSN':'Neurosurgery','VSHN':'Neurosurgery','BRST':'Plastics','SKGR':'Plastics'}
 
 
+
+category_dict = {'COLO': 'Colorectal/Gen.Surg.', 'REC':'Colorectal/Gen.Surg.', 'PVBY':'Vascular', 'CEA':'Vascular', 'AAA':'Vascular','AVSD':'Vascular',
+                 'CABG':'Cardiac','CARD':'Cardiac','APPY':'Colorectal/Gen.Surg.','CHOL':'Colorectal/Gen.Surg.','HER':'Colorectal/Gen.Surg.','SB':'Colorectal/Gen.Surg.',
+                 'XLAP':'Colorectal/Gen.Surg.','BILI':'Colorectal/Gen.Surg.','LAM':'Ortho/Spine','FUSN':'Ortho/Spine','THYR':'Head/Neck','NECK':'Head/Neck',
+                 'NEPH':'Urology','PRST':'Urology','HYST':'OB/GYN','VHYS':'OB/GYN','OVRY':'OB/GYN','CSEC':'OB/GYN',
+                 'KPRO':'Ortho/Spine','HPRO':'Ortho/Spine','OPRO':'Ortho/Spine','AMP':'Ortho/Spine','FX':'Ortho/Spine',
+                 'CRAN':'Neurosurgery','VHSN':'Neurosurgery','VSHN':'Neurosurgery','BRST':'Plastics','SKGR':'Plastics'}
+
+
 nhsn_code_duration['Category'] = nhsn_code_duration.NHSN_code.map(category_dict)
 
 
