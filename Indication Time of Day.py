@@ -22,8 +22,8 @@ sql1 = 'SELECT * ' \
        'FROM DasonView.ClinicalIndication ' \
        'WHERE AdministrationDateTime >= ? ' \
        'and AdministrationDateTime < ? ' \
-       'and HospitalId = 2000 ' \
-       'and ReportedClinicalIndication = ?'
+       # 'and HospitalId = 2000 ' \
+       # 'and ReportedClinicalIndication = ?'
 #'and NHSNUnitName = ? ' \
 
 
