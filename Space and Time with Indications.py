@@ -13,17 +13,17 @@ start_date = date(year=2018, month=7, day=1)
 end_date = date(year=2019, month=7, day=1)
 unit = 'Hospital Wide'
 indication = 'Sepsis'
-remove_cefazolin = 'Yes'
+remove_cefazolin = 'No'
 
 # create the engine for accessing sql database
 engine = create_engine('mssql+pyodbc://@vwp-dason-db/dason?driver=ODBC Driver 13 for SQL Server?trusted_connection=yes')
 
 sql1 = 'SELECT * ' \
-       'FROM DasonView.MedicationAdmin ' \
+       'FROM DasonView.ClinicalIndication ' \
        'WHERE AdministrationDateTime >= ? ' \
        'and AdministrationDateTime < ? ' \
-       'and HospitalId = 2000 ' \
-       # 'and NHSNUnitName = ?'
+       'and HospitalId = 2000 '
+       # 'and ReportedClinicalIndication != ?'
 
 
 # get our data!!
@@ -86,8 +86,10 @@ allabx_inperiod['Date'] = allabx_inperiod['AdministrationDateTime'].dt.date
 allabx_inperiod['Weekday'] = allabx_inperiod['AdministrationDateTime'].dt.weekday
 allabx_inperiod['Time'] = allabx_inperiod['AdministrationDateTime'].dt.hour
 
-# Remove all antibimicrobials that have spectrum score of 0
+# Remove all antimicrobials that have spectrum score of 0
 allabx_inperiod = allabx_inperiod[allabx_inperiod.Spectrum > 0]
+
+
 
 # Find the mean per day summed spectrum score per day of week
 # first have to dedupe the agent given for any specific day so you don't sum multiple doses.  Then on each DATE
@@ -107,9 +109,11 @@ deduped = firsts.copy().drop_duplicates(['AgentName', 'PatientId', 'AdmissionId'
 if remove_cefazolin == 'Yes':
     deduped = deduped[deduped.AgentName != 'Cefazolin']
 
+#remove all antimicrobials for prophylaxis
+deduped = deduped[~deduped.ClinicalIndicationCategoryName.str.contains('Prophylaxis', na = False)]
 
 #Make sure it is on the first day of therapy
-deduped = deduped[deduped.DOT == 1]
+# deduped = deduped[deduped.DOT == 1]
 
 count = deduped.HospitalId.count()
 
