@@ -39,15 +39,6 @@ category_dict = {'COLO': 'Colo/Gen.Surg', 'REC':'Colo/Gen.Surg', 'PVBY':'Vascula
                  'CRAN':'Neurosurgery','VHSN':'Neurosurgery','VSHN':'Neurosurgery','BRST':'Plastics','SKGR':'Plastics'}
 
 
-
-category_dict = {'COLO': 'Colorectal/Gen.Surg.', 'REC':'Colorectal/Gen.Surg.', 'PVBY':'Vascular', 'CEA':'Vascular', 'AAA':'Vascular','AVSD':'Vascular',
-                 'CABG':'Cardiac','CARD':'Cardiac','APPY':'Colorectal/Gen.Surg.','CHOL':'Colorectal/Gen.Surg.','HER':'Colorectal/Gen.Surg.','SB':'Colorectal/Gen.Surg.',
-                 'XLAP':'Colorectal/Gen.Surg.','BILI':'Colorectal/Gen.Surg.','LAM':'Ortho/Spine','FUSN':'Ortho/Spine','THYR':'Head/Neck','NECK':'Head/Neck',
-                 'NEPH':'Urology','PRST':'Urology','HYST':'OB/GYN','VHYS':'OB/GYN','OVRY':'OB/GYN','CSEC':'OB/GYN',
-                 'KPRO':'Ortho/Spine','HPRO':'Ortho/Spine','OPRO':'Ortho/Spine','AMP':'Ortho/Spine','FX':'Ortho/Spine',
-                 'CRAN':'Neurosurgery','VHSN':'Neurosurgery','VSHN':'Neurosurgery','BRST':'Plastics','SKGR':'Plastics'}
-
-
 nhsn_code_duration['Category'] = nhsn_code_duration.NHSN_code.map(category_dict)
 
 
@@ -62,7 +53,7 @@ medians = pd.DataFrame({col:vals['hours'] for col,vals in grouped}).median().sor
 
 
 plt.figure(figsize=(12,4))
-sns.boxplot(data = nhsn_code_duration, x='Category', y = 'hours', order = medians.index, whis = [5,95], showfliers = False)
+sns.boxplot(data = nhsn_code_duration, x='Category', y = 'hours', order = medians.index)
 plt.ylabel('Hours')
 plt.xlabel('Category Based on NHSN Code')
 plt.ylim(0,60)
@@ -71,8 +62,8 @@ plt.show()
 
 
 #split into cohorts and do boxplots that way
-first_cohort = nhsn_code_duration[nhsn_code_duration.Category.isin(['Plastics', 'Urology', 'Neurosurgery','Ortho/Spine','Cardiac'])].reset_index()
-second_cohort = nhsn_code_duration[nhsn_code_duration.Category.isin(['Colo/Gen.Surg','Head/Neck','OB/GYN','Vascular'])].reset_index()
+first_cohort = nhsn_code_duration[nhsn_code_duration.Category.isin(['Plastics', 'Urology', 'Neurosurgery', 'Orthopedic', 'Spine','Cardiac'])].reset_index()
+second_cohort = nhsn_code_duration[nhsn_code_duration.Category.isin(['Colorectal','General Surgery','Head/Neck','OB/GYN','Vascular'])].reset_index()
 
 #first cohort order
 first_grouped =first_cohort.groupby(first_cohort.Category)
@@ -87,7 +78,7 @@ second_medians = pd.DataFrame({col:vals['hours'] for col,vals in second_grouped}
 
 plt.figure(figsize=(8,4))
 sns.boxplot(data = first_cohort, x='Category', y = 'hours', order = first_medians.index, showfliers = False)
-plt.ylabel('Hours')
+plt.ylabel('Post-Procedure Duration (hours)')
 plt.xlabel('Category Based on NHSN Code')
 plt.ylim(0,40)
 plt.show()
@@ -95,7 +86,7 @@ plt.show()
 
 plt.figure(figsize=(12,4))
 sns.boxplot(data = second_cohort, x='Category', y = 'hours', order = second_medians.index, whis = [25,75], showfliers = False)
-plt.ylabel('Hours')
+plt.ylabel('Post-Procedure Duration (hours)')
 plt.xlabel('Category Based on NHSN Code')
 plt.ylim(0,10)
 plt.show()
@@ -105,7 +96,7 @@ plt.show()
 
 plt.figure(figsize=(6,6))
 sns.boxplot(data = nhsn_code_duration, x='age', y = 'hours')
-plt.ylabel('Hours')
-plt.xlabel('Category Based on Age')
+plt.ylabel('Post-Procedure Duration (hours)')
+plt.xlabel('Age')
 plt.ylim(0,70)
 plt.show()
