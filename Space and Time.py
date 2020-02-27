@@ -11,7 +11,7 @@ from scipy.ndimage.filters import gaussian_filter
 # initialization parameters and dates
 start_date = date(year=2018, month=7, day=1)
 end_date = date(year=2019, month=7, day=1)
-unit = 'Hospital Wide'
+unit = 'Surgical Ward'
 indication = 'Sepsis'
 remove_cefazolin = 'Yes'
 
@@ -22,13 +22,13 @@ sql1 = 'SELECT * ' \
        'FROM DasonView.MedicationAdmin ' \
        'WHERE AdministrationDateTime >= ? ' \
        'and AdministrationDateTime < ? ' \
-       'and HospitalId = 2000 ' \
-       # 'and NHSNUnitName = ?'
+       'and HospitalId != 2000 ' \
+       'and NHSNUnitName = ?'
 
 
 # get our data!!
 allabx_inperiod = pd.read_sql(sql1, engine,
-                              params=[(start_date - timedelta(days=0)), (end_date + timedelta(days=0))])
+                              params=[(start_date - timedelta(days=0)), (end_date + timedelta(days=0)), unit])
 
 # create a spectrum score dictionary to each antimicrobial
 abx_dict = {'Ciprofloxacin': '8', 'Vancomycin': '5', 'Piperacillin with Tazobactam': '8',
@@ -72,7 +72,7 @@ abx_dict = {'Ciprofloxacin': '8', 'Vancomycin': '5', 'Piperacillin with Tazobact
             'Praziquantel': '0', 'Darunavir/Cobicistat/Emtricitabine/Tenofovir': '0', 'Chloroquine': '0',
             'Delafloxacin': '11', 'Meropenem/Vaborbactam': '11', 'Baloxavir Marboxil': '0', 'Caspofungin': '0',
             'Lopinavir/Ritonavir': '0', 'Doravirine': '0', 'Cefadroxil': '5', 'Cefpodoxime': '5',
-            'Cefotetan': '5', 'Rimantadine': '0', 'Stavudine': '0', 'Cefprozil': '3', 'Doripenem': '11'}
+            'Cefotetan': '5', 'Rimantadine': '0', 'Stavudine': '0', 'Cefprozil': '3', 'Doripenem': '11','Elvitegravir':'0'}
 
 # this next line checks to find the Nan and add them to the list, if we need it
 # allabx_inperiod[allabx_inperiod.Spectrum.isnull()].AgentName.unique()
@@ -187,7 +187,7 @@ plt.show()
 fig, axs = plt.subplots(figsize=(6, 6))
 plt.title(f'({unit}, {count} Antibiotic Starts)')
 plt.ylabel('ASI per Antibiotic Start')
-axs.boxplot([WDD, WDN, WED, WEN], showmeans=True, showfliers=False)
+axs.boxplot([WDD, WDN, WED, WEN], showmeans=False, showfliers=False)
 axs.set_ylim(0, 25.15)
 plt.xticks([1, 2, 3, 4], ['Weekday Day', 'Weekday Night', 'Weekend Day', 'Weekend Night'])
 plt.show()

@@ -11,8 +11,8 @@ from scipy.ndimage.filters import gaussian_filter
 # initialization parameters and dates
 start_date = date(year=2018, month=7, day=1)
 end_date = date(year=2019, month=7, day=1)
-unit = 'Hospital Wide'
-indication = 'Sepsis'
+unit = 'Sepsis'
+indication = 'Skin/Soft Tissue'
 remove_cefazolin = 'No'
 
 # create the engine for accessing sql database
@@ -22,13 +22,13 @@ sql1 = 'SELECT * ' \
        'FROM DasonView.ClinicalIndication ' \
        'WHERE AdministrationDateTime >= ? ' \
        'and AdministrationDateTime < ? ' \
-       'and HospitalId = 2000 '
-       # 'and ReportedClinicalIndication != ?'
+       'and HospitalId = 2000 ' \
+       'and ReportedClinicalIndication = ?'
 
 
 # get our data!!
 allabx_inperiod = pd.read_sql(sql1, engine,
-                              params=[(start_date - timedelta(days=0)), (end_date + timedelta(days=0))])
+                              params=[(start_date - timedelta(days=0)), (end_date + timedelta(days=0)), indication])
 
 # create a spectrum score dictionary to each antimicrobial
 abx_dict = {'Ciprofloxacin': '8', 'Vancomycin': '5', 'Piperacillin with Tazobactam': '8',
@@ -241,7 +241,7 @@ figure = ax.pcolormesh(heatmap_score_buffer, cmap='viridis', shading='gouraud')
 plt.yticks(np.arange(0, len(heatmap_score_buffer.index), 1), heatmap_score.index)
 plt.xticks(np.arange(0, len(heatmap_score_buffer.columns), 1), ['', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'])
 bar = fig.colorbar(figure)
-plt.title(f'{unit}, {count} Admissions')
+plt.title(f'{indication}, {count} Admissions')
 plt.ylabel('Hour')
 plt.xlabel('Day of Week')
 plt.axis([0.5, 7.5, 0, 24])
@@ -251,7 +251,7 @@ plt.show()
 plt.figure(figsize=(6, 6))
 ax = sns.heatmap(heatmap_score, annot=True, cmap='viridis')
 ax.invert_yaxis()
-plt.title(f'{unit}, {count} Admissions')
+plt.title(f'{indication}, {count} Admissions')
 plt.yticks(np.arange(0, len(heatmap_score_buffer.index), 1), heatmap_score.index, rotation='horizontal')
 plt.xlabel('Day of Week')
 plt.ylabel('Hour')

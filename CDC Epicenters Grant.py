@@ -80,7 +80,7 @@ second_medians = pd.DataFrame({col:vals['hours'] for col,vals in second_grouped}
 plt.figure(figsize=(8,4))
 sns.boxplot(data = second_cohort, x='Category', y = 'hours', order = second_medians.index, whis = [25,75], showfliers = False)
 plt.ylabel('Post-Procedure Duration (hours)')
-plt.xlabel('Category Based on NHSN Code')
+plt.xlabel('')
 plt.ylim(0,10)
 plt.show()
 

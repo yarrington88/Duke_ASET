@@ -22,14 +22,13 @@ sql1 = 'SELECT * ' \
        'FROM DasonView.ClinicalIndication ' \
        'WHERE AdministrationDateTime >= ? ' \
        'and AdministrationDateTime < ? ' \
-       # 'and HospitalId = 2000 ' \
-       # 'and ReportedClinicalIndication = ?'
+       'and ReportedClinicalIndication = ?'
 #'and NHSNUnitName = ? ' \
 
 
     # get our data!!
 allabx_inperiod = pd.read_sql(sql1, engine,
-                              params=[(start_date - timedelta(days=0)), (end_date + timedelta(days=0)), indication])
+                              params=[(start_date - timedelta(days=0)), (end_date + timedelta(days=0)),indication])
 
 # create a spectrum score dictionary to each antimicrobial
 abx_dict = {'Ciprofloxacin': '8', 'Vancomycin': '5', 'Piperacillin with Tazobactam': '8',
@@ -102,7 +101,8 @@ admissions = allabx_inperiod.groupby(['AdmissionId', 'PatientId'])
 idx = admissions.AdministrationDateTime.transform(min) + timedelta(hours=24) > allabx_inperiod.AdministrationDateTime
 firsts = allabx_inperiod[idx]
 deduped = firsts.copy().drop_duplicates(['AgentName', 'PatientId', 'AdmissionId'], keep='first')
-
+#remove all antimicrobials for prophylaxis
+deduped = deduped[~deduped.ClinicalIndicationCategoryName.str.contains('Prophylaxis', na = False)]
 
 #remove cefazolin?
 # deduped = deduped[deduped.AgentName != 'Cefazolin']
@@ -186,10 +186,6 @@ firsts = allabx_inperiod[idx]
 deduped = firsts.copy().drop_duplicates(['AgentName', 'PatientId', 'AdmissionId'], keep='first')
 
 
-#remove cefazolin?
-# deduped = deduped[deduped.AgentName != 'Cefazolin']
-
-count = deduped.HospitalId.count()
 
 # make a column in deduped with the first admin time of all abx
 deduped['first admin'] = deduped.groupby(['Date', 'PatientId', 'Weekday']).Time.transform('min')
