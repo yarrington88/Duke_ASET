@@ -8,27 +8,43 @@ from scipy import stats
 import seaborn as sns
 from scipy.ndimage.filters import gaussian_filter
 
-# initialization parameters and dates
-start_date = date(year=2018, month=7, day=1)
-end_date = date(year=2019, month=7, day=1)
-unit = 'Hospital Wide'
+# initialization parameters
+start_date = date(year=2017, month=6, day=1)
+end_date = date(year=2020, month=1, day=1)
+eval_unit = 'Yes'
+unit = 'Medical Ward' #also goes to the title of the figures, if not using a unit can type "Hospital Wide"
 indication = 'Sepsis'
-remove_cefazolin = 'No'
 
 # create the engine for accessing sql database
 engine = create_engine('mssql+pyodbc://@vwp-dason-db/dason?driver=ODBC Driver 13 for SQL Server?trusted_connection=yes')
 
 sql1 = 'SELECT * ' \
-       'FROM DasonView.ClinicalIndication ' \
+       'FROM DasonView.MedicationAdminClinicalIndication ' \
        'WHERE AdministrationDateTime >= ? ' \
        'and AdministrationDateTime < ? ' \
-       'and HospitalId = 2000 '
+       'and (HospitalId = 2000 OR HospitalId = 1001 OR HospitalId = 1011) '
        # 'and ReportedClinicalIndication != ?'
 
 
 # get our data!!
 allabx_inperiod = pd.read_sql(sql1, engine,
                               params=[(start_date - timedelta(days=0)), (end_date + timedelta(days=0))])
+
+if eval_unit == 'Yes':
+    sql2 = 'SELECT * ' \
+           'FROM DasonView.MedicationAdmin ' \
+           'WHERE AdministrationDateTime >= ? ' \
+           'and AdministrationDateTime < ? ' \
+           'and (HospitalId = 2000 OR HospitalId = 1001 OR HospitalId = 1011) ' \ 
+           'and NHSNUnitName = ?'
+
+    all_NHSN_unit_data = pd.read_sql(sql2, engine,
+                                  params=[(start_date - timedelta(days=0)), (end_date + timedelta(days=0)), unit])
+
+    NHSN_data_cleaned = all_NHSN_unit_data[['PatientId','AdministrationDateTime','NHSNUnitName','UnitName','DOT']]
+
+    allabx_inperiod = pd.merge(allabx_inperiod,NHSN_data_cleaned, on = ['PatientId','AdministrationDateTime'])
+
 
 # create a spectrum score dictionary to each antimicrobial
 abx_dict = {'Ciprofloxacin': '8', 'Vancomycin': '5', 'Piperacillin with Tazobactam': '8',
@@ -98,24 +114,21 @@ allabx_inperiod = allabx_inperiod[allabx_inperiod.Spectrum > 0]
 
 
 admissions = allabx_inperiod.groupby(['AdmissionId', 'PatientId'])
-# should prob grab the first 24 hours of antibiotics rather than the first calendar day
+#  grab the first 24 hours of antibiotic
 
 idx = admissions.AdministrationDateTime.transform(min) + timedelta(hours=24) > allabx_inperiod.AdministrationDateTime
 firsts = allabx_inperiod[idx]
 deduped = firsts.copy().drop_duplicates(['AgentName', 'PatientId', 'AdmissionId'], keep='first')
 
 
-#remove cefazolin?
-if remove_cefazolin == 'Yes':
-    deduped = deduped[deduped.AgentName != 'Cefazolin']
-
 #remove all antimicrobials for prophylaxis
 deduped = deduped[~deduped.ClinicalIndicationCategoryName.str.contains('Prophylaxis', na = False)]
 
-#Make sure it is on the first day of therapy
-# deduped = deduped[deduped.DOT == 1]
+#Make sure it is on the first day of therapy if looking at Units specifically
+if eval_unit == 'Yes':
+    deduped = deduped[deduped.DOT == 1]
 
-count = deduped.HospitalId.count()
+
 
 # make a column in deduped with the first admin time of all abx
 deduped['first admin'] = deduped.groupby(['Date', 'PatientId', 'Weekday']).Time.transform('min')
@@ -126,6 +139,9 @@ deduped['first admin'] = deduped.groupby(['Date', 'PatientId', 'Weekday']).Time.
 groupbypatient = deduped.groupby(['Date', 'PatientId', 'Weekday', 'first admin'])
 
 
+#count individual antibiotic starts and unique antibiotic admissions
+antibiotic_starts = deduped.HospitalId.count()
+antibiotic_admissions = len(groupbypatient)
 
 # find the sum of the ASI per each group above
 summedASIperday = groupbypatient.Spectrum.sum()
@@ -189,9 +205,9 @@ plt.show()
 
 # Boxplots for each of the 4 groups
 fig, axs = plt.subplots(figsize=(6, 6))
-plt.title(f'({unit}, {count} Antibiotic Starts)')
+plt.title(f'({unit}, {antibiotic_admissions} Antibiotic Admissions)')
 plt.ylabel('ASI per Antibiotic Start')
-axs.boxplot([WDD, WDN, WED, WEN], showmeans=True, showfliers=False)
+axs.boxplot([WDD, WDN, WED, WEN], showmeans=False, showfliers=False)
 axs.set_ylim(0, 25.15)
 plt.xticks([1, 2, 3, 4], ['Weekday Day', 'Weekday Night', 'Weekend Day', 'Weekend Night'])
 plt.show()
@@ -205,18 +221,19 @@ weekend_night_mean = summedASIperday.groupby('Weekend/Night').Spectrum.mean()[Tr
 WDN_compare = sp.stats.mannwhitneyu(WDD, WDN, alternative='two-sided')
 WED_compare = sp.stats.mannwhitneyu(WDD, WED, alternative='two-sided')
 WEN_compare = sp.stats.mannwhitneyu(WDD, WEN, alternative='two-sided')
+test_compare = sp.stats.mannwhitneyu(WEN, WED, alternative='two-sided')
 
 # PLOT THE BAR AND BOXPLOTS per day of the week
 
 plt.bar(['Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'], mean_per_day, yerr=ste_per_day * 1.96)
 plt.axis([-0.5, 6.5, 0, 12])
-plt.title(f'({unit}, {count} Admissions, {start_date} to {end_date})')
+plt.title(f'({unit}, {antibiotic_admissions} Admissions, {start_date} to {end_date})')
 plt.ylabel('Mean of Cumulative ASI')
 plt.show()
 
 summedASIperday.boxplot(column='Spectrum', by='Weekday')
 plt.suptitle('')
-plt.title(f'({unit}, {count} Admissions, {start_date} to {end_date})')
+plt.title(f'({unit}, {antibiotic_admissions} Admissions, {start_date} to {end_date})')
 plt.ylabel('Mean of Cumulative ASI')
 plt.xlabel('Day of Week')
 plt.xticks([1, 2, 3, 4, 5, 6, 7], ['Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'])
@@ -241,7 +258,7 @@ figure = ax.pcolormesh(heatmap_score_buffer, cmap='viridis', shading='gouraud')
 plt.yticks(np.arange(0, len(heatmap_score_buffer.index), 1), heatmap_score.index)
 plt.xticks(np.arange(0, len(heatmap_score_buffer.columns), 1), ['', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'])
 bar = fig.colorbar(figure)
-plt.title(f'{unit}, {count} Admissions')
+plt.title(f'{unit}, {antibiotic_admissions} Admissions')
 plt.ylabel('Hour')
 plt.xlabel('Day of Week')
 plt.axis([0.5, 7.5, 0, 24])
@@ -251,7 +268,7 @@ plt.show()
 plt.figure(figsize=(6, 6))
 ax = sns.heatmap(heatmap_score, annot=True, cmap='viridis')
 ax.invert_yaxis()
-plt.title(f'{unit}, {count} Admissions')
+plt.title(f'{unit}, {antibiotic_admissions} Admissions')
 plt.yticks(np.arange(0, len(heatmap_score_buffer.index), 1), heatmap_score.index, rotation='horizontal')
 plt.xlabel('Day of Week')
 plt.ylabel('Hour')
@@ -263,3 +280,7 @@ print(WDD.median(), WDN.median(), WED.median(), WEN.median())
 
 # Check a certain hour of day.
 deduped[deduped.Time == 23].AgentName.value_counts().nlargest(5)
+
+print(antibiotic_starts)
+print(antibiotic_admissions)
+

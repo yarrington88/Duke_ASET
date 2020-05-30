@@ -1,0 +1,55 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy as sp
+from sqlalchemy import create_engine
+from datetime import datetime, timedelta, date
+from scipy import stats
+import seaborn as sns
+from scipy.ndimage.filters import gaussian_filter
+
+start_date = date(year=2020, month=3, day=1)
+
+engine = create_engine('mssql+pyodbc://@vwp-dason-db/dason?driver=ODBC Driver 13 for SQL Server?trusted_connection=yes')
+
+
+sql1 =  'SELECT * ' \
+        'FROM DasonView.MicroIsolate ' \
+        'WHERE PathogenId = 3000'
+
+covid_tests = pd.read_sql(sql1, engine)
+
+
+
+sql2 =  'select * ' \
+        'FROM DasonView.MedicationAdmin ' \
+        'WHERE AdministrationDateTime > ? ' \ 
+        'AND HospitalId = 2000 ' \
+        'AND AgentId = 502'
+
+antibiotics = pd.read_sql(sql2,engine, params = [start_date])
+
+
+len(covid_tests.CultureDateTime.dt.date.unique())
+
+grouped = covid_tests.groupby('Result')
+plt.hist([grouped.get_group('Positive').CultureDateTime.dt.date,
+          grouped.get_group('Negative').CultureDateTime.dt.date], bins = 25, stacked = True)
+plt.xticks(rotation = 90)
+plt.show()
+
+
+covid_tests.groupby(covid_tests.CultureDateTime.dt.date).Result.count().plot(kind = 'bar')
+plt.show()
+
+
+print(covid_tests.Result.value_counts())
+
+
+
+joined = pd.merge(covid_tests, antibiotics, on = 'PatientId', copy= False)
+
+antibiotic_cohort = joined.PatientId.unique().tolist()
+
+
+hospital_test_cohort = covid_tests.dropna(subset = ['UnitId']).PatientId

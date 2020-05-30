@@ -13,7 +13,7 @@ start_date = date(year=2018, month=7, day=1)
 end_date = date(year=2019, month=7, day=1)
 unit = 'Hospital Wide'
 indication = 'Sepsis'
-remove_cefazolin = 'Yes'
+remove_cefazolin = 'No'
 
 # create the engine for accessing sql database
 engine = create_engine('mssql+pyodbc://@vwp-dason-db/dason?driver=ODBC Driver 13 for SQL Server?trusted_connection=yes')
@@ -259,3 +259,4 @@ print(WDD.median(), WDN.median(), WED.median(), WEN.median())
 
 # Check a certain hour of day.
 deduped[deduped.Time == 23].AgentName.value_counts().nlargest(5)
+
