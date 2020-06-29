@@ -25,6 +25,7 @@ sql1 = 'SELECT * ' \
        'WHERE HospitalId = 2000'
 
 
+
 # get our data!!
 detours_data = pd.read_sql(sql1, engine)
 
