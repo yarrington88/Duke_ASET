@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
+    <data-source source="LOCAL" name="ASET Database (Duke)" uuid="5a127318-3ee8-48a8-b54b-cf6188fbc224">
+      <driver-ref>sqlserver.jtds</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>net.sourceforge.jtds.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:jtds:sqlserver://vwp-dason-dhdb</jdbc-url>
+      <jdbc-additional-properties>
+        <property name="DOMAIN" value="DHE" />
+      </jdbc-additional-properties>
+    </data-source>
+    <data-source source="LOCAL" name="DASON Database" uuid="e399308a-53a8-428b-82e3-6b3c4a2971da">
+      <driver-ref>sqlserver.jtds</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>net.sourceforge.jtds.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:jtds:sqlserver://vwp-dason-db</jdbc-url>
+      <jdbc-additional-properties>
+        <property name="DOMAIN" value="DHE" />
+      </jdbc-additional-properties>
+    </data-source>
+    <data-source source="LOCAL" name="DICON Database" uuid="64bd5213-777c-4ad9-b18a-0797795818e2">
+      <driver-ref>sqlserver.jtds</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>net.sourceforge.jtds.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:jtds:sqlserver://cshareddb.dhe.duke.edu</jdbc-url>
+      <jdbc-additional-properties>
+        <property name="DOMAIN" value="DHE" />
+      </jdbc-additional-properties>
+    </data-source>
+  </component>
+</project>

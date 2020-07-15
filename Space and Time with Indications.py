@@ -9,20 +9,24 @@ import seaborn as sns
 from scipy.ndimage.filters import gaussian_filter
 
 # initialization parameters
-start_date = date(year=2017, month=6, day=1)
-end_date = date(year=2020, month=1, day=1)
+start_date = date(year=2018, month=7, day=1)
+end_date = date(year=2020, month=7, day=1)
 eval_unit = 'Yes'
-unit = 'Medical Ward' #also goes to the title of the figures, if not using a unit can type "Hospital Wide"
-indication = 'Sepsis'
+unit = '%Critical Care%' # also goes to the title of the figures, if not using a unit can type "Hospital Wide"
+# should be Medical Ward, Surgical Ward, Medical Critical Care, Surgical Critical Care or Combined Med/Surg
+# indication = 'Sepsis'
 
 # create the engine for accessing sql database
-engine = create_engine('mssql+pyodbc://@vwp-dason-db/dason?driver=ODBC Driver 13 for SQL Server?trusted_connection=yes')
+engine = create_engine('mssql+pyodbc://@vwp-dason-db/dason?driver=ODBC Driver 17 for SQL Server?trusted_connection=yes')
 
 sql1 = 'SELECT * ' \
        'FROM DasonView.MedicationAdminClinicalIndication ' \
        'WHERE AdministrationDateTime >= ? ' \
        'and AdministrationDateTime < ? ' \
-       'and (HospitalId = 2000 OR HospitalId = 1001 OR HospitalId = 1011) '
+       'and HospitalId != 2000'
+
+    # 'and (HospitalId = 1001 OR HospitalId = 1011) '
+
        # 'and ReportedClinicalIndication != ?'
 
 
@@ -35,11 +39,10 @@ if eval_unit == 'Yes':
            'FROM DasonView.MedicationAdmin ' \
            'WHERE AdministrationDateTime >= ? ' \
            'and AdministrationDateTime < ? ' \
-           'and (HospitalId = 2000 OR HospitalId = 1001 OR HospitalId = 1011) ' \ 
-           'and NHSNUnitName = ?'
+           'and HospitalId != 2000 ' \ 
+           'and NHSNUnitName like ?'
 
-    all_NHSN_unit_data = pd.read_sql(sql2, engine,
-                                  params=[(start_date - timedelta(days=0)), (end_date + timedelta(days=0)), unit])
+    all_NHSN_unit_data = pd.read_sql(sql2, engine, params=[(start_date - timedelta(days=0)), (end_date + timedelta(days=0)), unit])
 
     NHSN_data_cleaned = all_NHSN_unit_data[['PatientId','AdministrationDateTime','NHSNUnitName','UnitName','DOT']]
 
@@ -88,7 +91,7 @@ abx_dict = {'Ciprofloxacin': '8', 'Vancomycin': '5', 'Piperacillin with Tazobact
             'Praziquantel': '0', 'Darunavir/Cobicistat/Emtricitabine/Tenofovir': '0', 'Chloroquine': '0',
             'Delafloxacin': '11', 'Meropenem/Vaborbactam': '11', 'Baloxavir Marboxil': '0', 'Caspofungin': '0',
             'Lopinavir/Ritonavir': '0', 'Doravirine': '0', 'Cefadroxil': '5', 'Cefpodoxime': '5',
-            'Cefotetan': '5', 'Rimantadine': '0', 'Stavudine': '0', 'Cefprozil': '3', 'Doripenem': '11'}
+            'Cefotetan': '5', 'Rimantadine': '0', 'Stavudine': '0', 'Cefprozil': '3', 'Doripenem': '11', 'Cefiderocol': '7', 'Cefaclor': '5'}
 
 # this next line checks to find the Nan and add them to the list, if we need it
 # allabx_inperiod[allabx_inperiod.Spectrum.isnull()].AgentName.unique()
@@ -121,10 +124,10 @@ firsts = allabx_inperiod[idx]
 deduped = firsts.copy().drop_duplicates(['AgentName', 'PatientId', 'AdmissionId'], keep='first')
 
 
-#remove all antimicrobials for prophylaxis
+# remove all antimicrobials for prophylaxis
 deduped = deduped[~deduped.ClinicalIndicationCategoryName.str.contains('Prophylaxis', na = False)]
 
-#Make sure it is on the first day of therapy if looking at Units specifically
+# Make sure it is on the first day of therapy if looking at Units specifically
 if eval_unit == 'Yes':
     deduped = deduped[deduped.DOT == 1]
 
@@ -205,7 +208,7 @@ plt.show()
 
 # Boxplots for each of the 4 groups
 fig, axs = plt.subplots(figsize=(6, 6))
-plt.title(f'({unit}, {antibiotic_admissions} Antibiotic Admissions)')
+plt.title(f'{unit}, {antibiotic_admissions} Antibiotic Admissions')
 plt.ylabel('ASI per Antibiotic Start')
 axs.boxplot([WDD, WDN, WED, WEN], showmeans=False, showfliers=False)
 axs.set_ylim(0, 25.15)
@@ -233,7 +236,7 @@ plt.show()
 
 summedASIperday.boxplot(column='Spectrum', by='Weekday')
 plt.suptitle('')
-plt.title(f'({unit}, {antibiotic_admissions} Admissions, {start_date} to {end_date})')
+plt.title(f'({unit}, {antibiotic_admissions} Antibiotic Admissions, {start_date} to {end_date})')
 plt.ylabel('Mean of Cumulative ASI')
 plt.xlabel('Day of Week')
 plt.xticks([1, 2, 3, 4, 5, 6, 7], ['Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'])
@@ -266,9 +269,9 @@ plt.show()
 
 # PLOT USING SEABORN
 plt.figure(figsize=(6, 6))
-ax = sns.heatmap(heatmap_score, annot=True, cmap='viridis')
+ax = sns.heatmap(heatmap_score, annot=True, cmap='viridis', vmin =6, vmax = 12)
 ax.invert_yaxis()
-plt.title(f'{unit}, {antibiotic_admissions} Admissions')
+plt.title(f'Any Critical Care Unit, {antibiotic_admissions} Antibiotic Admissions')
 plt.yticks(np.arange(0, len(heatmap_score_buffer.index), 1), heatmap_score.index, rotation='horizontal')
 plt.xlabel('Day of Week')
 plt.ylabel('Hour')

@@ -9,14 +9,14 @@ import seaborn as sns
 from scipy.ndimage.filters import gaussian_filter
 
 # initialization parameters and dates
-start_date = date(year=2018, month=7, day=1)
+start_date = date(year=2019, month=6, day=1)
 end_date = date(year=2019, month=7, day=1)
 unit = 'Surgical Ward'
 indication = 'Sepsis'
 remove_cefazolin = 'No'
 
 # create the engine for accessing sql database
-engine = create_engine('mssql+pyodbc://@vwp-dason-db/dason?driver=ODBC Driver 13 for SQL Server?trusted_connection=yes')
+engine = create_engine('mssql+pyodbc://vwp-dason-db/dason?driver=ODBC Driver 17 for SQL Server?trusted_connection=yes')
 
 sql1 = 'SELECT * ' \
        'FROM DasonView.MedicationAdmin ' \

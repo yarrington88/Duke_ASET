@@ -13,12 +13,10 @@ from datetime import datetime, timedelta, date
 from scipy import stats
 
 
-epic_data = pd.read_csv('P:/DICON_OUTREACH/Fellow DICON Files/Mike Yarrington/DETOURS/DETOURS Analysis/all_outpt_abx_for_detours.csv')
+epic_data = pd.read_csv('/Volumes/Private/DICON_OUTREACH/Fellow DICON Files/Mike Yarrington/DETOURS/DETOURS Analysis/all_outpt_abx_for_detours.csv')
 
 
-
-
-engine = create_engine('mssql+pyodbc://@vwp-dason-db/large_collab_detours_aim5?driver=ODBC Driver 13 for SQL Server?trusted_connection=yes')
+engine = create_engine('mssql+pyodbc://@vwp-dason-db/large_collab_detours_aim5?driver=ODBC Driver 17 for SQL Server?trusted_connection=yes')
 
 sql1 = 'SELECT * ' \
        'FROM StudyView.Outcomes30DayOutPtAbx ' \
@@ -36,11 +34,11 @@ sql2= 'SELECT * ' \
 
 # get our data!!
 detours_data_30day = pd.read_sql(sql2, engine)
+detours_data_30day = detours_data_30day[~detours_data_30day.OC30dOutPtABXDays.isna()]
 
-
-epic_detours_data = epic_data[epic_data.MRN.isin(detours_data.MRN.unique())]
+epic_detours_data = epic_data[epic_data.MRN.isin(detours_data_30day.MRN.unique())]
 
 epic_detours_data = epic_detours_data[epic_detours_data.ROUTE.isin(['Intravenous','Oral'])]
 
-epic_detours_data.to_csv('C:/Users/mey10/Desktop/epic_data.csv')
-detours_data.to_csv('C:/Users/mey10/Desktop/detours_data.csv')
+epic_detours_data.to_csv('/Users/Yarrington/Desktop/epic_data.csv')
+detours_data_30day.to_csv('/Users/Yarrington/Desktop/detours_data.csv')
