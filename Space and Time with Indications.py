@@ -11,8 +11,8 @@ from scipy.ndimage.filters import gaussian_filter
 # initialization parameters
 start_date = date(year=2018, month=7, day=1)
 end_date = date(year=2020, month=7, day=1)
-eval_unit = 'Yes'
-unit = '%Critical Care%' # also goes to the title of the figures, if not using a unit can type "Hospital Wide"
+eval_unit = 'No'
+unit = 'Hospital Wide' # also goes to the title of the figures, if not using a unit can type "Hospital Wide"
 # should be Medical Ward, Surgical Ward, Medical Critical Care, Surgical Critical Care or Combined Med/Surg
 # indication = 'Sepsis'
 
@@ -23,7 +23,7 @@ sql1 = 'SELECT * ' \
        'FROM DasonView.MedicationAdminClinicalIndication ' \
        'WHERE AdministrationDateTime >= ? ' \
        'and AdministrationDateTime < ? ' \
-       'and HospitalId != 2000'
+       'and HospitalId = 2000'
 
     # 'and (HospitalId = 1001 OR HospitalId = 1011) '
 
@@ -39,7 +39,7 @@ if eval_unit == 'Yes':
            'FROM DasonView.MedicationAdmin ' \
            'WHERE AdministrationDateTime >= ? ' \
            'and AdministrationDateTime < ? ' \
-           'and HospitalId != 2000 ' \ 
+           'and HospitalId = 2000 ' \ 
            'and NHSNUnitName like ?'
 
     all_NHSN_unit_data = pd.read_sql(sql2, engine, params=[(start_date - timedelta(days=0)), (end_date + timedelta(days=0)), unit])
